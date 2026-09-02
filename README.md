@@ -48,7 +48,7 @@ npm run dev
 前端开发服务器默认监听：
 
 ```text
-http://localhost:3000
+http://localhost:37801
 ```
 
 开发模式下，Vite 会将 `/api` 和 `/ws` 代理到 `http://localhost:37800`。如果后端不在本机或端口不同，需要修改 `front-end/vite.config.ts` 中的代理配置。
