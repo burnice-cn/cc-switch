@@ -17,14 +17,9 @@ cc-switch/
 ## 环境要求
 
 - Node.js 20 或更高版本
-- pnpm 10
+- npm 10
 
-推荐通过 Corepack 启用 pnpm：
-
-```bash
-corepack enable
-corepack prepare pnpm@10.12.3 --activate
-```
+npm 随 Node.js 一起安装，无需单独启用。
 
 ## 开发模式
 
@@ -32,8 +27,8 @@ corepack prepare pnpm@10.12.3 --activate
 
 ```bash
 cd server
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 后端默认监听：
@@ -46,8 +41,8 @@ http://0.0.0.0:37800
 
 ```bash
 cd front-end
-pnpm install
-pnpm dev:renderer
+npm install
+npm run dev
 ```
 
 前端开发服务器默认监听：
@@ -64,8 +59,8 @@ http://localhost:3000
 
 ```bash
 cd front-end
-pnpm install
-pnpm build:renderer
+npm install
+npm run build
 ```
 
 构建产物位于：
@@ -78,9 +73,9 @@ front-end/dist/
 
 ```bash
 cd server
-pnpm install
-pnpm build
-pnpm start
+npm install
+npm run build
+npm run start
 ```
 
 后端默认会尝试托管以下目录中的前端静态文件：
@@ -118,7 +113,7 @@ CC_SWITCH_CONFIG_DIR=/data/cc-switch \
 CC_SWITCH_DB_PATH=/data/cc-switch/cc-switch.db \
 CC_SWITCH_SETTINGS_PATH=/data/cc-switch/settings.json \
 CC_SWITCH_STATIC_DIR=/data/cc-switch/front-end-dist \
-pnpm start
+npm run start
 ```
 
 ## 常用检查
@@ -126,14 +121,14 @@ pnpm start
 在 `front-end/` 中执行：
 
 ```bash
-pnpm typecheck
-pnpm test:unit
+npm run typecheck
+npm run test:unit
 ```
 
 在 `server/` 中执行：
 
 ```bash
-pnpm build
+npm run build
 ```
 
 服务启动后可以访问健康检查接口：
