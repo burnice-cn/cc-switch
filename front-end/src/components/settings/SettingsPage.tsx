@@ -36,7 +36,6 @@ import { Button } from "@/components/ui/button";
 import { settingsApi } from "@/lib/api";
 import { LanguageSettings } from "@/components/settings/LanguageSettings";
 import { ThemeSettings } from "@/components/settings/ThemeSettings";
-import { WindowSettings } from "@/components/settings/WindowSettings";
 import { AppVisibilitySettings } from "@/components/settings/AppVisibilitySettings";
 import { SkillStorageLocationSettings } from "@/components/settings/SkillStorageLocationSettings";
 import { SkillSyncMethodSettings } from "@/components/settings/SkillSyncMethodSettings";
@@ -277,10 +276,6 @@ export function SettingsPage({
                       }
                     />
                     <CodexAuthSettings
-                      settings={settings}
-                      onChange={handleAutoSave}
-                    />
-                    <WindowSettings
                       settings={settings}
                       onChange={handleAutoSave}
                     />
