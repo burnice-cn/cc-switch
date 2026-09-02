@@ -53,7 +53,7 @@ function parseJson(value: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
-function parseCodexToml(value: string): Record<string, unknown> {
+export function parseCodexToml(value: string): Record<string, unknown> {
   const parsed: unknown = parseToml(value);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Codex 通用配置必须是 TOML 表");
@@ -98,13 +98,13 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-function asObject(value: unknown): Record<string, unknown> | null {
+export function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
 }
 
-function jsonIsSubset(target: unknown, source: unknown): boolean {
+export function jsonIsSubset(target: unknown, source: unknown): boolean {
   const sourceObject = asObject(source);
   if (sourceObject) {
     const targetObject = asObject(target);
@@ -134,7 +134,7 @@ function jsonIsSubset(target: unknown, source: unknown): boolean {
   return target === source;
 }
 
-function jsonDeepMerge(target: unknown, source: unknown): unknown {
+export function jsonDeepMerge(target: unknown, source: unknown): unknown {
   const targetObject = asObject(target);
   const sourceObject = asObject(source);
   if (targetObject && sourceObject) {
