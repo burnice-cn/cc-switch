@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { platform } from "node:os";
 import type { FastifyInstance } from "fastify";
 
 type Handler = (req: any, reply: any) => unknown;
@@ -8,6 +10,69 @@ const value = <T,>(result: T): Handler => async () => result;
  * 前后端分离后，这些依赖本机 GUI、OAuth 或外部工具链的功能暂以安全空值返回，
  * 避免前端控制台反复出现 Unknown command / 404。
  */
+type ToolVersion = {
+  name: string;
+  version: string | null;
+  latest_version: string | null;
+  error: string | null;
+  installed_but_broken: boolean;
+  env_type: "windows" | "wsl" | "macos" | "linux" | "unknown";
+  wsl_distro: string | null;
+};
+
+const TOOL_VERSION_COMMANDS: Record<string, { command: string; args: string[] }> = {
+  claude: { command: "claude", args: ["--version"] },
+  codex: { command: "codex", args: ["--version"] },
+  gemini: { command: "gemini", args: ["--version"] },
+  grok: { command: "grok", args: ["--version"] },
+  opencode: { command: "opencode", args: ["--version"] },
+  openclaw: { command: "openclaw", args: ["--version"] },
+  hermes: { command: "hermes", args: ["--version"] },
+  pi: { command: "pi", args: ["--version"] },
+};
+
+const environmentType = (): ToolVersion["env_type"] => {
+  const value = platform();
+  return value === "win32" ? "windows" : value === "darwin" ? "macos" : value === "linux" ? "linux" : "unknown";
+};
+
+function runToolVersion(command: string, args: string[]): Promise<string | null> {
+  return new Promise((resolve) => {
+    execFile(command, args, { timeout: 4000, encoding: "utf8" }, (error, stdout, stderr) => {
+      if (error) {
+        resolve(null);
+        return;
+      }
+      resolve((stdout || stderr).trim() || null);
+    });
+  });
+}
+
+const getToolVersions: Handler = async (req) => {
+  const query = req.query as { tools?: string };
+  const requested = query.tools?.split(",").map((item) => item.trim()).filter(Boolean) ?? Object.keys(TOOL_VERSION_COMMANDS);
+  const envType = environmentType();
+  return Promise.all(requested.map(async (name) => {
+    const entry = TOOL_VERSION_COMMANDS[name];
+    if (!entry) {
+      return {
+        name, version: null, latest_version: null, error: "未支持的工具",
+        installed_but_broken: false, env_type: envType, wsl_distro: null,
+      };
+    }
+    const version = await runToolVersion(entry.command, entry.args);
+    return {
+      name,
+      version,
+      latest_version: null,
+      error: version ? null : "未找到可执行文件或无法获取版本",
+      installed_but_broken: false,
+      env_type: envType,
+      wsl_distro: null,
+    };
+  }));
+};
+
 export function registerCompatRoutes(app: FastifyInstance) {
   const none = async () => null;
   const emptyArray = async () => [] as unknown[];
@@ -69,8 +134,8 @@ export function registerCompatRoutes(app: FastifyInstance) {
     ["GET", "/api/terminal/*", falseResult],
     ["GET", "/api/claude-desktop/*", emptyObject],
     ["GET", "/api/oauth/*", emptyArray],
-    ["GET", "/api/tools/versions", emptyArray],
-    ["POST", "/api/tools/lifecycle", falseResult],
+    ["GET", "/api/tools/versions", getToolVersions],
+    ["POST", "/api/tools/lifecycle", unsupported],
     ["POST", "/api/window/theme", value(true)],
     ["GET", "/api/autolaunch", value(false)],
     ["PUT", "/api/autolaunch", value(true)],
