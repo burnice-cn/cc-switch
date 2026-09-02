@@ -1071,10 +1071,17 @@ export function OmoFormFields({
     badge?: React.ReactNode | string;
     action?: React.ReactNode;
   }) => (
-    <button
-      type="button"
-      className="flex items-center justify-between w-full py-2 px-3 text-left"
+    <div
+      role="button"
+      tabIndex={0}
+      className="flex items-center justify-between w-full py-2 px-3 text-left cursor-pointer"
       onClick={onToggle}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onToggle();
+        }
+      }}
     >
       <div className="flex items-center gap-2">
         {isOpen ? (
@@ -1082,7 +1089,7 @@ export function OmoFormFields({
         ) : (
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         )}
-        <Label className="text-sm font-semibold cursor-pointer">{title}</Label>
+        <span className="text-sm font-semibold cursor-pointer">{title}</span>
         {typeof badge === "string" ? (
           <Badge variant="outline" className="text-[10px] h-5">
             {badge}
@@ -1092,7 +1099,7 @@ export function OmoFormFields({
         )}
       </div>
       {action && <div onClick={(e) => e.stopPropagation()}>{action}</div>}
-    </button>
+    </div>
   );
 
   const renderModelSection = ({

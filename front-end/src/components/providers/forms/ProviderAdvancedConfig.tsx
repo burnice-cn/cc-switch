@@ -42,10 +42,17 @@ export function ProviderAdvancedConfig({
     <div className="space-y-4">
       {/* 计费配置 */}
       <div className="rounded-lg border border-border/50 bg-muted/20">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        <div
+          role="button"
+          tabIndex={0}
+          className="flex w-full items-center justify-between p-4 hover:bg-muted/30 transition-colors cursor-pointer"
           onClick={() => setIsPricingConfigOpen(!isPricingConfigOpen)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setIsPricingConfigOpen(!isPricingConfigOpen);
+            }
+          }}
         >
           <div className="flex items-center gap-3">
             <Coins className="h-4 w-4 text-muted-foreground" />
@@ -60,14 +67,14 @@ export function ProviderAdvancedConfig({
               className="flex items-center gap-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <Label
-                htmlFor="pricing-config-enabled"
+              <span
                 className="text-sm text-muted-foreground"
+                onClick={(event) => event.preventDefault()}
               >
                 {t("providerAdvanced.useCustomPricing", {
                   defaultValue: "使用单独配置",
                 })}
-              </Label>
+              </span>
               <Switch
                 id="pricing-config-enabled"
                 checked={pricingConfig.enabled}
@@ -83,7 +90,7 @@ export function ProviderAdvancedConfig({
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
           </div>
-        </button>
+        </div>
         <div
           className={cn(
             "overflow-hidden transition-all duration-200",
