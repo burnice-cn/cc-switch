@@ -1,31 +1,27 @@
+# Dependencies
 node_modules/
-dist/
-release/
-.DS_Store
-*.log
-.env
-.env.local
-*.tsbuildinfo
-.npmrc
-CLAUDE.md
-AGENTS.md
-GEMINI.md
-/.claude
-/.codex
-/.gemini
-/.cc-switch
-/.idea
-/.vscode
-vitest-report.json
-nul
 
-# Flatpak build artifacts
-flatpak/cc-switch.deb
-flatpak-build/
-flatpak-repo/
-.worktrees/
-.spec-workflow/
-copilot-api
-.history
-CODEBUDDY.md
-mainWindow.js
+# Build output
+dist/
+server/dist/
+
+# Environment and local data
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# Logs
+*.log
+logs/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# Frontend Tauri build artifacts
+front-end/src-tauri/target/
+front-end/src-tauri/gen/schemas/

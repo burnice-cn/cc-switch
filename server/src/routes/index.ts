@@ -1,0 +1,10 @@
+export { registerHealthRoute } from "./health.js";
+export { registerSettingsRoutes } from "./settings.js";
+export { registerProviderRoutes } from "./providers.js";
+export { registerMcpRoutes } from "./mcp.js";
+export { registerPromptRoutes } from "./prompts.js";
+export { registerSkillRoutes } from "./skills.js";
+export { registerUsageRoutes } from "./usage.js";
+export { registerSessionRoutes } from "./sessions.js";
+export { registerProxyRoutes } from "./proxy.js";
+export { registerTrayRoutes } from "./tray.js";
