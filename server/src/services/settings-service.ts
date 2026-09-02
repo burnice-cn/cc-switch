@@ -22,6 +22,28 @@ const DEFAULT_SETTINGS: Record<string, unknown> = {
   showProfileSwitcher: true,
   skillSyncMethod: "auto",
   skillStorageLocation: "cc_switch",
+  proxyConfirmed: false,
+  usageConfirmed: false,
+  usageDashboardRefreshIntervalMs: 30000,
+  preserveCodexOfficialAuthOnSwitch: false,
+  unifyCodexSessionHistory: false,
+  unifyCodexMigrateExisting: false,
+  failoverConfirmed: false,
+  firstRunNoticeConfirmed: false,
+  autoSyncConfirmed: false,
+  commonConfigConfirmed: false,
+  language: "zh",
+  visibleApps: {
+    claude: true,
+    "claude-desktop": false,
+    codex: true,
+    gemini: true,
+    grokbuild: true,
+    opencode: true,
+    openclaw: false,
+    hermes: false,
+    pi: false,
+  },
 };
 
 export type AppSettings = typeof DEFAULT_SETTINGS & Record<string, unknown>;

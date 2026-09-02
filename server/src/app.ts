@@ -17,6 +17,15 @@ import {
   registerSessionRoutes,
   registerProxyRoutes,
   registerTrayRoutes,
+  registerEnvRoutes,
+  registerMigrationRoutes,
+  registerConfigRoutes,
+  registerFailoverRoutes,
+  registerBackupRoutes,
+  registerSystemRoutes,
+  registerEndpointRoutes,
+  registerProfileRoutes,
+  registerCompatRoutes,
 } from "./routes/index.js";
 
 export async function createApp(db?: AppDatabase): Promise<{
@@ -62,8 +71,8 @@ export async function createApp(db?: AppDatabase): Promise<{
 
   // ── REST API 路由 ──
   registerHealthRoute(app);
-  registerSettingsRoutes(app);
-  registerProviderRoutes(app, providerService);
+  registerSettingsRoutes(app, database);
+  registerProviderRoutes(app, providerService, database);
   registerMcpRoutes(app, database);
   registerPromptRoutes(app, database);
   registerSkillRoutes(app, database);
@@ -71,6 +80,15 @@ export async function createApp(db?: AppDatabase): Promise<{
   registerSessionRoutes(app);
   registerProxyRoutes(app, database, broadcaster, proxyServer);
   registerTrayRoutes(app);
+  registerEnvRoutes(app);
+  registerMigrationRoutes(app);
+  registerConfigRoutes(app, database);
+  registerFailoverRoutes(app, database);
+  registerBackupRoutes(app, env);
+  registerSystemRoutes(app);
+  registerEndpointRoutes(app, database);
+  registerProfileRoutes(app, database);
+  registerCompatRoutes(app);
 
   return { app, broadcaster, database, proxyServer };
 }
