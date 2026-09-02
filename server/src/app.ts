@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import { getServerEnv } from "./config/env.js";
 import { EventBroadcaster } from "./ws/broadcaster.js";
@@ -59,6 +59,15 @@ export async function createApp(db?: AppDatabase): Promise<{
 
   // ── 代理网关 ──
   const proxyServer = new ProxyServer(database, broadcaster);
+
+  // Keep switch/write failures actionable in the frontend instead of turning
+  // every expected validation error into an opaque Internal Server Error.
+  app.setErrorHandler<FastifyError>((error, _req, reply) => {
+    reply.status(error.statusCode ?? 500).send({
+      message: error.message,
+      statusCode: error.statusCode ?? 500,
+    });
+  });
 
   // ── REST API 路由 ──
   registerHealthRoute(app);

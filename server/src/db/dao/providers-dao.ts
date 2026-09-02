@@ -131,6 +131,12 @@ export class ProvidersDao {
 
   switch(id: string, appType: string): boolean {
     const tx = this.db.db.transaction(() => {
+      const target = this.db.get<{ id: string }>(
+        "SELECT id FROM providers WHERE id = ? AND app_type = ?",
+        id, appType,
+      );
+      if (!target) return false;
+
       this.db.run("UPDATE providers SET is_current = 0 WHERE app_type = ?", appType);
       const result = this.db.run(
         "UPDATE providers SET is_current = 1 WHERE id = ? AND app_type = ?",
