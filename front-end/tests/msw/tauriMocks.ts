@@ -1,58 +1,24 @@
-import crossFetch, {
-  Headers as CrossFetchHeaders,
-  Request as CrossFetchRequest,
-  Response as CrossFetchResponse,
-} from "cross-fetch";
 import { vi } from "vitest";
-import { server } from "./server";
 
-const TAURI_ENDPOINT = "http://tauri.local";
-
-globalThis.fetch = crossFetch as typeof fetch;
-globalThis.Headers = CrossFetchHeaders as typeof Headers;
-globalThis.Request = CrossFetchRequest as typeof Request;
-globalThis.Response = CrossFetchResponse as typeof Response;
-
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: async (command: string, payload: Record<string, unknown> = {}) => {
-    const response = await fetch(`${TAURI_ENDPOINT}/${command}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload ?? {}),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(text || `Invoke failed for ${command}`);
-    }
-
-    const text = await response.text();
-    if (!text) return undefined;
-    try {
-      return JSON.parse(text);
-    } catch {
-      return text;
-    }
-  },
-}));
-
-const listeners = new Map<string, Set<(event: { payload: unknown }) => void>>();
+const eventListeners = new Map<
+  string,
+  Set<(event: { payload: unknown }) => void>
+>();
 
 const ensureListenerSet = (event: string) => {
-  if (!listeners.has(event)) {
-    listeners.set(event, new Set());
+  if (!eventListeners.has(event)) {
+    eventListeners.set(event, new Set());
   }
-  return listeners.get(event)!;
+  return eventListeners.get(event)!;
 };
 
+/** Test helper for emitting backend event payloads over the WebSocket-compatible API. */
 export const emitTauriEvent = (event: string, payload: unknown) => {
-  const handlers = listeners.get(event);
-  handlers?.forEach((handler) => handler({ payload }));
+  ensureListenerSet(event);
+  eventListeners.get(event)?.forEach((handler) => handler({ payload }));
 };
 
-vi.mock("@tauri-apps/api/event", () => ({
+vi.mock("@/lib/ws/listen", () => ({
   listen: async (
     event: string,
     handler: (event: { payload: unknown }) => void,
@@ -63,12 +29,4 @@ vi.mock("@tauri-apps/api/event", () => ({
       set.delete(handler);
     };
   },
-}));
-
-// Ensure the MSW server is referenced so tree shaking doesn't remove imports
-void server;
-
-vi.mock("@tauri-apps/api/path", () => ({
-  homeDir: async () => "/home/mock",
-  join: async (...segments: string[]) => segments.join("/"),
 }));

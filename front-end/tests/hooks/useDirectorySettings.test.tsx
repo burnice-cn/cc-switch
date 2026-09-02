@@ -22,9 +22,11 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
-vi.mock("@tauri-apps/api/path", () => ({
-  homeDir: homeDirMock,
-  join: joinMock,
+vi.mock("@/lib/api/transport", () => ({
+  invoke: async (command: string) => {
+    if (command === "get_home_dir") return homeDirMock();
+    throw new Error(`Unexpected command: ${command}`);
+  },
 }));
 
 vi.mock("sonner", () => ({
