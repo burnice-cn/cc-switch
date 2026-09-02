@@ -20,6 +20,16 @@ type ToolVersion = {
   wsl_distro: string | null;
 };
 
+const TOOL_NPM_PACKAGES: Record<string, string> = {
+  claude: "@anthropic-ai/claude-code",
+  codex: "@openai/codex",
+  gemini: "@google/gemini-cli",
+  grok: "@xai-official/grok",
+  opencode: "opencode-ai",
+  openclaw: "openclaw",
+  pi: "@earendil-works/pi-coding-agent",
+};
+
 const TOOL_VERSION_COMMANDS: Record<string, { command: string; args: string[] }> = {
   claude: { command: "claude", args: ["--version"] },
   codex: { command: "codex", args: ["--version"] },
@@ -35,6 +45,29 @@ const environmentType = (): ToolVersion["env_type"] => {
   const value = platform();
   return value === "win32" ? "windows" : value === "darwin" ? "macos" : value === "linux" ? "linux" : "unknown";
 };
+
+function fetchNpmLatestVersion(packageName: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    execFile("npm", ["view", packageName, "version"], {
+      timeout: 10000,
+      encoding: "utf8",
+      windowsHide: true,
+    }, (error, stdout, stderr) => {
+      if (error) {
+        resolve(null);
+        return;
+      }
+      const version = (stdout || stderr).trim().replace(/^"/, "").replace(/"$/, "");
+      resolve(version || null);
+    });
+  });
+}
+
+function extractVersion(raw: string | null): string | null {
+  if (!raw) return null;
+  const match = raw.match(/(\d+\.\d+\.\d+(?:[-+][^\s]+)?)/);
+  return match?.[1] ?? raw;
+}
 
 function runToolVersion(command: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
@@ -60,11 +93,17 @@ const getToolVersions: Handler = async (req) => {
         installed_but_broken: false, env_type: envType, wsl_distro: null,
       };
     }
-    const version = await runToolVersion(entry.command, entry.args);
+    const [versionRaw, npmLatest] = await Promise.all([
+      runToolVersion(entry.command, entry.args),
+      TOOL_NPM_PACKAGES[name]
+        ? fetchNpmLatestVersion(TOOL_NPM_PACKAGES[name])
+        : Promise.resolve(null),
+    ]);
+    const version = extractVersion(versionRaw);
     return {
       name,
       version,
-      latest_version: null,
+      latest_version: npmLatest,
       error: version ? null : "未找到可执行文件或无法获取版本",
       installed_but_broken: false,
       env_type: envType,
