@@ -1,5 +1,4 @@
 import Fastify, { type FastifyInstance } from "fastify";
-import fastifyStatic from "@fastify/static";
 import fastifyWebSocket from "@fastify/websocket";
 import { getServerEnv } from "./config/env.js";
 import { EventBroadcaster } from "./ws/broadcaster.js";
@@ -54,14 +53,6 @@ export async function createApp(db?: AppDatabase): Promise<{
   // ── WebSocket ──
   await app.register(fastifyWebSocket);
   const broadcaster = new EventBroadcaster(app);
-
-  // ── 静态资源（前端 dist/）──
-  const distDir = env.staticDir;
-  await app.register(fastifyStatic, {
-    root: distDir,
-    prefix: "/",
-    decorateReply: true,
-  });
 
   // ── 服务层 ──
   const providerService = new ProviderService(database, broadcaster);

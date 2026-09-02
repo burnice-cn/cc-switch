@@ -10,7 +10,6 @@ export interface ServerEnv {
   appConfigDir: string;
   dbPath: string;
   settingsPath: string;
-  staticDir: string;
 }
 
 export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
@@ -31,6 +30,5 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
     settingsPath: resolve(
       env.CC_SWITCH_SETTINGS_PATH?.trim() || join(appConfigDir, "settings.json"),
     ),
-    staticDir: resolve(env.CC_SWITCH_STATIC_DIR?.trim() || join(process.cwd(), "../front-end/dist")),
   };
 }

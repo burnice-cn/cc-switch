@@ -31,9 +31,7 @@ async function main() {
   console.log(
     `CC Switch 服务已启动: http://${env.host === "0.0.0.0" ? "0.0.0.0" : env.host}:${env.port}`,
   );
-  console.log(
-    `数据目录: ${env.appConfigDir}\n静态前端目录: ${env.staticDir}`,
-  );
+  console.log(`数据目录: ${env.appConfigDir}`);
 
   // 5. 仅本机部署时自动打开浏览器
   if (env.host === "127.0.0.1" || env.host === "localhost") {

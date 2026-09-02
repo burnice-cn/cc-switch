@@ -11,7 +11,7 @@ cc-switch/
 ```
 
 - `front-end/`：负责界面展示，构建后输出静态资源。
-- `server/`：负责配置存储、REST API、WebSocket 推送和静态资源托管。
+- `server/`：负责配置存储、REST API 和 WebSocket 推送。
 - 两个目录互相独立，可以分别安装依赖、构建和部署。
 
 ## 环境要求
@@ -78,19 +78,13 @@ npm run build
 npm run start
 ```
 
-后端默认会尝试托管以下目录中的前端静态文件：
+后端只提供 REST API 和 WebSocket 服务，不托管前端文件。
 
-```text
-../front-end/dist
-```
+### 独立部署前端
 
-因此，如果后端和前端构建产物保持上面的相对位置，直接访问后端端口即可。
+把 `front-end/dist/` 部署到独立的静态文件服务器，例如 Nginx、Caddy 或对象存储静态站点。
 
-## 独立部署前端
-
-也可以把 `front-end/dist/` 部署到 Nginx、Caddy 或其他静态文件服务器。
-
-前端启动后，可以在“设置”页面配置并切换后端服务器地址。REST 和 WebSocket 地址会根据当前选择的后端动态生成。
+前端部署后，可以在“设置”页面配置并切换后端服务器地址。REST 和 WebSocket 地址会根据当前选择的后端动态生成。
 
 ## 后端环境变量
 
@@ -101,7 +95,6 @@ npm run start
 | `CC_SWITCH_CONFIG_DIR` | `~/.cc-switch` | 配置和数据目录 |
 | `CC_SWITCH_DB_PATH` | `<配置目录>/cc-switch.db` | SQLite 数据库路径 |
 | `CC_SWITCH_SETTINGS_PATH` | `<配置目录>/settings.json` | 设置文件路径 |
-| `CC_SWITCH_STATIC_DIR` | `../front-end/dist` | 前端静态资源目录 |
 
 示例：
 
@@ -112,7 +105,6 @@ CC_SWITCH_PORT=37800 \
 CC_SWITCH_CONFIG_DIR=/data/cc-switch \
 CC_SWITCH_DB_PATH=/data/cc-switch/cc-switch.db \
 CC_SWITCH_SETTINGS_PATH=/data/cc-switch/settings.json \
-CC_SWITCH_STATIC_DIR=/data/cc-switch/front-end-dist \
 npm run start
 ```
 
