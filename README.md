@@ -2,6 +2,10 @@
 
 CC Switch 是一个用于管理 Claude Code、Codex 等多种 CLI 供应商配置的工具。当前仓库已重构为前后端分离架构，后端可以部署到任意电脑，前端可以在浏览器中切换不同的后端服务器。
 
+## 关于本项目
+
+本项目由 [farion1231/cc-switch](https://github.com/farion1231/cc-switch) 重写而来。
+
 ## 项目结构
 
 ```text
