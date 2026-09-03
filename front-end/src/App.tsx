@@ -415,6 +415,10 @@ function App() {
     };
   }, [activeApp, queryClient, refetch]);
 
+  useTauriEvent("mcp-servers-changed", async () => {
+    await queryClient.invalidateQueries({ queryKey: ["mcp", "all"] });
+  });
+
   useTauriEvent("universal-provider-synced", async () => {
     await queryClient.invalidateQueries({ queryKey: ["providers"] });
     try {

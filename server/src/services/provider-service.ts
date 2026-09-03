@@ -3,8 +3,10 @@
  */
 import type { AppDatabase } from "../db/database.js";
 import { ProvidersDao, type Provider } from "../db/dao/providers-dao.js";
+import { McpDao } from "../db/dao/mcp-dao.js";
 import type { EventBroadcaster } from "../ws/broadcaster.js";
 import { ProviderLiveService } from "./provider-live-service.js";
+import { parseCodexToml } from "./common-config-service.js";
 import { getSettings, saveSettings, type AppSettings } from "./settings-service.js";
 
 export class ProviderService {
@@ -12,9 +14,13 @@ export class ProviderService {
 
   private live: ProviderLiveService;
 
+  private mcpDao: McpDao;
+
   constructor(private db: AppDatabase, private broadcaster: EventBroadcaster) {
     this.dao = new ProvidersDao(db);
     this.live = new ProviderLiveService(db);
+    this.mcpDao = new McpDao(db);
+    this.live.onMcpServersChanged = () => this.broadcaster.emitMcpServersChanged();
   }
 
   getAll(appType: string): Record<string, Provider> {
@@ -40,7 +46,9 @@ export class ProviderService {
   }
 
   add(provider: Provider, appType: string, addToLive?: boolean): boolean {
-    return this.dao.add(provider, appType, addToLive);
+    const added = this.dao.add(provider, appType, addToLive);
+    if (added) this.registerSnapshotMcpServers(appType, provider);
+    return added;
   }
 
   update(provider: Provider, appType: string, originalId?: string): boolean {
@@ -48,6 +56,7 @@ export class ProviderService {
 
     const updated = this.dao.update(provider, appType, originalId);
     if (!updated) return false;
+    this.registerSnapshotMcpServers(appType, provider);
 
     // 编辑当前供应商后立即把变更投影到 live 配置。Codex 的
     // model_catalog_json（含逐模型思考等级）只在 live 写入时生成，
@@ -76,10 +85,53 @@ export class ProviderService {
       this.live.write(appType, effective);
     }
 
+    this.registerSnapshotMcpServers(appType, provider);
     if (!this.dao.switch(id, appType)) throw new Error("切换供应商失败");
     this.live.setCurrentProvider(appType, id);
     this.broadcaster.emitProviderSwitched(appType, id);
     return { warnings: [] };
+  }
+
+  /**
+   * Adopt MCP entries found in provider TOML snapshots into the unified MCP
+   * registry. Registry entries remain authoritative on the next projection.
+   */
+  private registerSnapshotMcpServers(appType: string, provider: Provider): void {
+    if (appType !== "codex") return;
+    const config = provider.settingsConfig?.config;
+    if (typeof config !== "string" || !config.trim()) return;
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = parseCodexToml(config);
+    } catch {
+      return;
+    }
+    const snapshotServers = parsed.mcp_servers;
+    if (!snapshotServers || typeof snapshotServers !== "object" || Array.isArray(snapshotServers)) {
+      return;
+    }
+
+    const registeredIds = new Set(
+      this.mcpDao.getAll().map((server) => server.id),
+    );
+    let registered = false;
+    for (const [id, value] of Object.entries(snapshotServers)) {
+      if (!id.trim() || !value || typeof value !== "object" || Array.isArray(value)) continue;
+      if (registeredIds.has(id)) continue;
+
+      this.mcpDao.upsertDiscovered({
+        id,
+        name: id,
+        serverConfig: value as Record<string, unknown>,
+        enabledApps: { codex: true },
+      });
+      registeredIds.add(id);
+      registered = true;
+    }
+    if (registered) {
+      this.broadcaster.emitMcpServersChanged();
+    }
   }
 
   private isLiveTakenOver(appType: string): boolean {

@@ -31,6 +31,10 @@ export class EventBroadcaster {
     this.emit("provider-switched", { appType, providerId });
   }
 
+  emitMcpServersChanged() {
+    this.emit("mcp-servers-changed");
+  }
+
   emitProxyFlagsChanged(flags: Record<string, unknown>) {
     this.emit("proxy-flags-changed", flags);
   }

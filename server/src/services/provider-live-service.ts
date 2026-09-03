@@ -11,6 +11,7 @@ import { basename, join, resolve } from "node:path";
 import { stringify as stringifyToml } from "smol-toml";
 import type { AppDatabase } from "../db/database.js";
 import type { Provider } from "../db/dao/providers-dao.js";
+import { McpDao } from "../db/dao/mcp-dao.js";
 import { getSettings, saveSettings, type AppSettings } from "./settings-service.js";
 import {
   getConfigSnippet,
@@ -47,7 +48,9 @@ const CURRENT_PROVIDER_KEYS: Record<string, string> = {
 };
 
 export class ProviderLiveService {
-  constructor(private db: AppDatabase) {}
+  onMcpServersChanged?: () => void;
+
+  constructor(private db: AppDatabase, private mcpDao = new McpDao(db)) {}
 
   /** Resolve a directory override, expanding `~`/`~/...` like the desktop app. */
   configDir(appType: string): string {
@@ -261,19 +264,55 @@ export class ProviderLiveService {
    * provider switch, so enabled DB servers must be re-projected or they vanish.
    */
   private projectMcpServers(appType: string, parsed: Record<string, unknown>): void {
-    const column = appType === "codex" ? "enabled_codex" : "enabled_grokbuild";
-    const rows = this.db.all<{ id: string; server_config: string }>(
-      `SELECT id, server_config FROM mcp_servers WHERE ${column} = 1 ORDER BY name`,
-    );
-    const servers: Record<string, unknown> = {};
-    for (const row of rows) {
-      try {
-        servers[row.id] = JSON.parse(row.server_config || "{}");
-      } catch (error) {
-        throw new Error(`MCP 服务器 ${row.id} 配置必须是 JSON 对象`);
-      }
+    if (appType === "codex") {
+      this.registerSnapshotMcpServers(parsed);
     }
-    parsed.mcp_servers = servers;
+    parsed.mcp_servers = this.getEnabledMcpServers(appType);
+  }
+
+  private getEnabledMcpServers(appType: string): Record<string, unknown> {
+    if (appType === "codex") return this.mcpDao.getEnabledConfigs("codex");
+    if (appType === "grokbuild") return this.mcpDao.getEnabledConfigs("grokbuild");
+    return {};
+  }
+
+  /** Adopt provider TOML MCP entries so unified MCP management stays authoritative. */
+  private registerSnapshotMcpServers(
+    parsed: Record<string, unknown>,
+  ): void {
+    const snapshotServers = parsed.mcp_servers;
+    if (
+      !snapshotServers ||
+      typeof snapshotServers !== "object" ||
+      Array.isArray(snapshotServers)
+    ) {
+      return;
+    }
+
+    const knownIds = new Set(
+      this.mcpDao.getAll().map((server) => server.id),
+    );
+    let registered = false;
+
+    for (const [id, value] of Object.entries(snapshotServers)) {
+      // Only immediate values are server specs. Guard against accidental
+      // nested tables being projected as one pseudo "server".
+      if (!id.trim() || !value || typeof value !== "object" || Array.isArray(value)) {
+        continue;
+      }
+      if (knownIds.has(id)) continue;
+
+      this.mcpDao.upsertDiscovered({
+        id,
+        name: id,
+        serverConfig: value as Record<string, unknown>,
+        enabledApps: { codex: true },
+      });
+      knownIds.add(id);
+      registered = true;
+    }
+
+    if (registered) this.onMcpServersChanged?.();
   }
 
   private geminiPaths() {

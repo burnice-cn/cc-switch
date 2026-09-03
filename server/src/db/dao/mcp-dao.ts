@@ -39,6 +39,17 @@ const APP_COLUMNS: Array<[string, keyof McpRow]> = [
   ["hermes", "enabled_hermes"],
 ];
 
+const ENABLED_APP_CONFIGS = [
+  ["claude", "enabled_claude"],
+  ["codex", "enabled_codex"],
+  ["gemini", "enabled_gemini"],
+  ["grokbuild", "enabled_grokbuild"],
+  ["opencode", "enabled_opencode"],
+  ["hermes", "enabled_hermes"],
+] as const;
+
+type McpApp = (typeof ENABLED_APP_CONFIGS)[number][0];
+
 function mapRow(row: McpRow): McpServer {
   const enabledApps: Record<string, boolean> = {};
   for (const [app, col] of APP_COLUMNS) {
@@ -61,6 +72,30 @@ export class McpDao {
 
   getAll(): McpServer[] {
     return this.db.all<McpRow>("SELECT * FROM mcp_servers ORDER BY name").map(mapRow);
+  }
+
+  getEnabledConfigs(app: McpApp): Record<string, unknown> {
+    const column = ENABLED_APP_CONFIGS.find(
+      ([appName]) => appName === app,
+    )?.[1];
+    if (!column) return {};
+
+    const rows = this.db.all<{ id: string; server_config: string }>(
+      `SELECT id, server_config FROM mcp_servers WHERE ${column} = 1 ORDER BY name`,
+    );
+    const servers: Record<string, unknown> = {};
+    for (const row of rows) {
+      try {
+        servers[row.id] = JSON.parse(row.server_config || "{}");
+      } catch {
+        throw new Error(`MCP 服务器 ${row.id} 配置必须是 JSON 对象`);
+      }
+    }
+    return servers;
+  }
+
+  upsertDiscovered(server: McpServer): boolean {
+    return this.add(server);
   }
 
   getById(id: string): McpServer | null {
