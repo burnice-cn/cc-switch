@@ -59,36 +59,144 @@ http://localhost:37801
 
 ## 构建与部署
 
-### 构建前端
+### 1. 构建产物
 
 ```bash
-cd front-end
-npm install
-npm run build
-```
-
-构建产物位于：
-
-```text
-front-end/dist/
-```
-
-### 构建并启动后端
-
-```bash
+# 后端
 cd server
-npm install
-npm run build
-npm run start
+npm ci
+npm run build          # 产物：server/dist/
+
+# 前端
+cd ../front-end
+npm ci
+npm run build          # 产物：front-end/dist/
 ```
 
-后端只提供 REST API 和 WebSocket 服务，不托管前端文件。
+前端使用相对路径（`base: "./"`），`dist/` 可以部署到任意目录或子路径。
 
-### 独立部署前端
+### 2. 部署后端（Ubuntu）
 
-把 `front-end/dist/` 部署到独立的静态文件服务器，例如 Nginx、Caddy 或对象存储静态站点。
+以下方式把后端部署为用户级 systemd 服务，数据沿用 `~/.cc-switch`，无需 root。
 
-前端部署后，可以在“设置”页面配置并切换后端服务器地址。REST 和 WebSocket 地址会根据当前选择的后端动态生成。
+```bash
+# 停止旧的开发服务后构建
+cd server
+npm run build
+
+# 部署生产目录（只复制构建产物和清单，node_modules 重新安装）
+mkdir -p ~/.cc-switch-web/server
+cp -r dist package.json package-lock.json ~/.cc-switch-web/server/
+cd ~/.cc-switch-web/server
+npm ci --omit=dev
+
+# 备份数据目录（可选但推荐）
+tar -czf ~/cc-switch-data-backup-$(date +%Y%m%d).tar.gz -C ~ .cc-switch
+```
+
+创建用户级 systemd 服务 `~/.config/systemd/user/cc-switch-backend.service`：
+
+```ini
+[Unit]
+Description=CC Switch backend
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.cc-switch-web/server
+ExecStart=%h/.nvm/versions/node/v22.18.0/bin/node dist/index.js
+Environment=CC_SWITCH_HOST=0.0.0.0
+Environment=CC_SWITCH_PORT=37800
+Environment=CC_SWITCH_CONFIG_DIR=%h/.cc-switch
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+```
+
+> `ExecStart` 请替换为 `which node` 输出的实际路径；使用 nvm 时建议写死绝对路径，避免 systemd 找不到 node。
+> 用户级服务开机自启需要 `loginctl enable-linger $USER`（Ubuntu 桌面/ WSL systemd 环境通常已默认开启，可先 `loginctl show-user $USER -p Linger` 确认）。
+
+启动并设为开机自启：
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now cc-switch-backend
+systemctl --user status cc-switch-backend
+```
+
+验证：
+
+```bash
+curl http://127.0.0.1:37800/api/health
+```
+
+常用维护：
+
+```bash
+systemctl --user restart cc-switch-backend
+journalctl --user -u cc-switch-backend -f -n 100
+```
+
+若部署在 WSL 中，Windows 重启后需要主动拉起 WSL，可在 Windows 管理员命令行添加计划任务：
+
+```bat
+schtasks /create /tn "cc-switch-wsl-boot" /tr "wsl.exe --distribution Ubuntu --exec /bin/true" /sc onstart /ru SYSTEM /rl highest
+```
+
+### 3. 部署前端（Windows Nginx）
+
+把 `front-end/dist/` 复制到 Nginx 的站点目录（示例为 `html/cc-switch`），并添加如下 `server` 块：
+
+```nginx
+server {
+    listen 37801;
+    server_name _;
+
+    root html/cc-switch;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:37800;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /ws {
+        proxy_pass http://127.0.0.1:37800;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 3600s;
+    }
+}
+```
+
+```powershell
+# 检查配置
+D:\Software\nginx-1.31.3\nginx.exe -t
+# 后台启动
+Start-Process -FilePath "D:\Software\nginx-1.31.3\nginx.exe" -WorkingDirectory "D:\Software\nginx-1.31.3"
+```
+
+验证：
+
+```bat
+curl http://localhost:37801/api/health
+```
+
+前端访问地址：`http://localhost:37801/`。默认后端地址为 `http://<主机名>:37800`；如从局域网访问，在页面“设置 → 后端服务器”中填 `http://<Windows 机器 IP>:37801`（走 Nginx 的 `/api`、`/ws` 代理），并在 Windows 防火墙放行对应端口。
+
+### 4. 独立部署前端
+
+也可以把 `front-end/dist/` 部署到任意的静态文件服务器，例如 Nginx、Caddy 或对象存储静态站点。前端部署后，在“设置”页面配置并切换后端服务器地址，REST 和 WebSocket 地址会根据当前选择的后端动态生成。
 
 ## 后端环境变量
 
