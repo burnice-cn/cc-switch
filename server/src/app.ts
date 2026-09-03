@@ -24,6 +24,7 @@ import {
   registerSystemRoutes,
   registerEndpointRoutes,
   registerProfileRoutes,
+  registerModelRoutes,
   registerCompatRoutes,
 } from "./routes/index.js";
 
@@ -88,6 +89,7 @@ export async function createApp(db?: AppDatabase): Promise<{
   registerSystemRoutes(app);
   registerEndpointRoutes(app, database);
   registerProfileRoutes(app, database);
+  registerModelRoutes(app);
   registerCompatRoutes(app);
 
   return { app, broadcaster, database, proxyServer };

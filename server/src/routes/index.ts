@@ -17,3 +17,4 @@ export { registerFailoverRoutes } from "./failover.js";
 export { registerEndpointRoutes } from "./endpoints.js";
 export { registerProfileRoutes } from "./profiles.js";
 export { registerCompatRoutes } from "./compat.js";
+export { registerModelRoutes } from "./models.js";

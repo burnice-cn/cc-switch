@@ -303,7 +303,7 @@ const commandRoutes: Record<string, { method: string; path: string }> = {
   has_codex_unify_history_backup: { method: "GET", path: "/cloud-sync/info" },
   restore_codex_unified_history: { method: "POST", path: "/cloud-sync/info" },
   get_opencode_models: { method: "GET", path: "/oauth/models" },
-  fetch_models_for_config: { method: "GET", path: "/oauth/models" },
+  fetch_models_for_config: { method: "POST", path: "/models/fetch" },
   get_codex_oauth_models: { method: "GET", path: "/oauth/models" },
   get_codex_oauth_quota: { method: "GET", path: "/oauth/quota" },
   get_xai_oauth_models: { method: "GET", path: "/oauth/models" },
@@ -400,6 +400,22 @@ export async function invoke<T>(
     data: method !== "GET" && method !== "DELETE" ? cleanArgs : undefined,
   };
 
-  const res = await axios.request<T>(config);
-  return res.data;
+  try {
+    const res = await axios.request<T>(config);
+    return res.data;
+  } catch (error) {
+    // 后端错误处理器统一返回 { message }。把它提升为普通 Error，
+    // 前端才能直接通过 String(err) / extractErrorMessage 读到具体原因，
+    // 而不是笼统的 "Request failed with status code xxx"。
+    if (axios.isAxiosError(error)) {
+      const data = error.response?.data as unknown;
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        const message = (data as Record<string, unknown>).message;
+        if (typeof message === "string" && message.trim()) {
+          throw new Error(message.trim());
+        }
+      }
+    }
+    throw error;
+  }
 }
