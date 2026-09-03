@@ -22,6 +22,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Temporary/scratch files
+tmp/
+
 # Frontend Tauri build artifacts
 front-end/src-tauri/target/
 front-end/src-tauri/gen/schemas/
